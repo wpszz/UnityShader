@@ -1,0 +1,74 @@
+﻿Shader "WP/DiffuseShadow"
+{
+	Properties
+	{
+		_MainTex("Base (RGB)", 2D) = "white" {}
+	}
+
+	SubShader
+	{
+		Tags { "RenderType" = "Opaque" }
+		LOD 150
+
+		CGPROGRAM
+		#pragma surface surf Lambert vertex:vert noforwardadd
+		#pragma multi_compile __ WP_SHADOW_AA
+
+		sampler2D _MainTex;
+
+		sampler2D WP_ShadowMap;
+		float4 WP_ShadowMap_TexelSize;
+		float4x4 WP_MatrixVPC;
+		float4x4 WP_MatrixV;
+
+		struct Input {
+			float2 uv_MainTex;
+			float3 wp_uvz;
+		};
+
+		void vert(inout appdata_full v, out Input o) {
+			UNITY_INITIALIZE_OUTPUT(Input, o);
+
+			float cullZ = mul((float3x3)WP_MatrixV, mul((float3x3)unity_ObjectToWorld, v.normal)).z;
+			o.wp_uvz = mul(WP_MatrixVPC, mul(unity_ObjectToWorld, v.vertex)).xyz * step(0, cullZ);
+		}
+
+		inline float ClipShadowDepth(float shadowDepth, float3 uvz)
+		{
+			return step(shadowDepth, uvz.z) * step(shadowDepth - 0.9, 0) * step(0, uvz.z)
+				* step(0, uvz.x) * step(0, uvz.y) * step(uvz.x, 1) * step(uvz, 1);
+		}
+
+		inline float GaussianShadowDepth(float3 uvz, float kernelX, float kernelY, float kernelW) {
+			float shadowDepth = tex2D(WP_ShadowMap, float2(uvz.x + WP_ShadowMap_TexelSize.x * kernelX, uvz.y + WP_ShadowMap_TexelSize.y * kernelY)).r;
+			return ClipShadowDepth(shadowDepth, uvz) * kernelW;
+		}
+
+		void surf(Input IN, inout SurfaceOutput o) {
+			fixed4 c = tex2D(_MainTex, IN.uv_MainTex);
+
+#ifdef WP_SHADOW_AA
+			/* anti-aliasing */
+			float shadowDepth = 0;
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0, -1.0, 0.0585);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0, -1.0, 0.0965);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0, -1.0, 0.0585);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0,  0.0, 0.0965);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0,  0.0, 0.1529);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0,  0.0, 0.0965);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0,  1.0, 0.0585);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0,  1.0, 0.0965);
+			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0,  1.0, 0.0585);
+#else			
+			float shadowDepth = ClipShadowDepth(tex2D(WP_ShadowMap, IN.wp_uvz.xy).r, IN.wp_uvz);
+#endif
+			float atten = 0.4 * shadowDepth;
+			c.rgb *= (1 - atten);
+
+			o.Albedo = c.rgb;
+			o.Alpha = c.a;
+		}
+		ENDCG
+	}
+	Fallback "Custom/Mobile/VertexLit"
+}
