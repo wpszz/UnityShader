@@ -10,11 +10,20 @@ using UnityEditorInternal;
 [RequireComponent(typeof(Light))]
 public class WPShadow : MonoBehaviour
 {
+    public static int activeCullingMask
+    {
+        get;
+        private set;
+    }
+
     [Range(1, 3)]
     public int accuracy = 2;
 
     [Range(1f, 20f)]
     public float shadowDistance = 10f;
+
+    [Range(0f, 1f)]
+    public float shadowIdentity = 0.4f;
 
     public bool antiAliasing;
 
@@ -42,7 +51,6 @@ public class WPShadow : MonoBehaviour
                 m_shadowCamera.useOcclusionCulling = false;
                 m_shadowCamera.aspect = 1f;
                 m_shadowCamera.orthographic = true;
-                m_shadowCamera.SetReplacementShader(shadowMapShader, "RenderType");
             }
             return m_shadowCamera;
         }
@@ -61,8 +69,20 @@ public class WPShadow : MonoBehaviour
 
     Matrix4x4 m_correction4x4;
 
+    private int ID_WP_ShadowMap;
+    private int ID_WP_MatrixV;
+    private int ID_WP_MatrixVPC;
+    private int ID_WP_Identity;
+    private int ID_WP_AA;
+
     private void Start()
     {
+        ID_WP_ShadowMap = Shader.PropertyToID("WP_ShadowMap");
+        ID_WP_MatrixV = Shader.PropertyToID("WP_MatrixV");
+        ID_WP_MatrixVPC = Shader.PropertyToID("WP_MatrixVPC");
+        ID_WP_Identity = Shader.PropertyToID("WP_Identity");
+        ID_WP_AA = Shader.PropertyToID("WP_AA");
+
         m_mainCamera = Camera.main;
         m_transMainCamera = m_mainCamera.transform;
 
@@ -76,15 +96,37 @@ public class WPShadow : MonoBehaviour
         m_correction4x4.SetRow(3, new Vector4(0, 0, 0, 1));
 
         if (!m_mainCamera || !shadowMapShader || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.Depth))
+        {
             this.enabled = false;
+            return;
+        }
+
+        activeCullingMask = cullingMask;
     }
 
     private void OnDestroy()
     {
+        ClearShadow();
+
+        if (m_shadowCamera)
+            GameObject.Destroy(m_shadowCamera);
+        m_shadowCamera = null;
+    }
+
+    private void OnDisable()
+    {
+        ClearShadow();
+    }
+
+    private void ClearShadow()
+    {
         if (m_shadowMap)
             RenderTexture.ReleaseTemporary(m_shadowMap);
         m_shadowMap = null;
-        Shader.SetGlobalTexture("WP_ShadowMap", null);
+        m_shadowMapSize = 0;
+        Shader.SetGlobalTexture(ID_WP_ShadowMap, null);
+        Shader.SetGlobalInt(ID_WP_Identity, 0);
+        activeCullingMask = 0;
     }
 
     private void Update()
@@ -107,7 +149,7 @@ public class WPShadow : MonoBehaviour
         m_shadowMapSize = size;
         m_shadowMap = RenderTexture.GetTemporary(size, size, 16, RenderTextureFormat.Depth);
         shadowCamera.targetTexture = m_shadowMap;
-        Shader.SetGlobalTexture("WP_ShadowMap", m_shadowMap);
+        Shader.SetGlobalTexture(ID_WP_ShadowMap, m_shadowMap);
     }
 
     private void UpdateShadowMap()
@@ -158,20 +200,53 @@ public class WPShadow : MonoBehaviour
         shadowCamera.nearClipPlane = zMin;
         shadowCamera.farClipPlane = zMax;
         shadowCamera.cullingMask = cullingMask;
-        shadowCamera.Render();
+        shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
 
         Matrix4x4 worldToView = shadowCamera.worldToCameraMatrix;
         Matrix4x4 projection = GL.GetGPUProjectionMatrix(shadowCamera.projectionMatrix, false);
         Matrix4x4 VPC = m_correction4x4 * projection * worldToView;
-        Shader.SetGlobalMatrix("WP_MatrixV", worldToView);
-        Shader.SetGlobalMatrix("WP_MatrixVPC", VPC);
+        Shader.SetGlobalMatrix(ID_WP_MatrixV, worldToView);
+        Shader.SetGlobalMatrix(ID_WP_MatrixVPC, VPC);
+        Shader.SetGlobalFloat(ID_WP_Identity, shadowIdentity);
+        Shader.SetGlobalInt(ID_WP_AA, antiAliasing ? 1 : 0);
 
-        if (antiAliasing != Shader.IsKeywordEnabled("WP_SHADOW_AA"))
+        activeCullingMask = cullingMask;
+    }
+
+    public void FixShadowMapShader()
+    {
+        shadowMapShader = Shader.Find("WP/Shadow/Depth");
+    }
+
+    public void FixObjectShaderByLayer(int layer)
+    {
+        foreach (var mr in UnityEngine.Object.FindObjectsOfType<MeshRenderer>())
         {
-            if (antiAliasing)
-                Shader.EnableKeyword("WP_SHADOW_AA");
-            else
-                Shader.DisableKeyword("WP_SHADOW_AA");
+            if (mr.gameObject.layer == layer)
+            {
+                if (mr.sharedMaterial)
+                {
+                    Shader shader = mr.sharedMaterial.shader;
+                    if (shader)
+                    {
+                        switch (shader.name)
+                        {
+                            case "Mobile/Diffuse":
+                                mr.sharedMaterial.shader = Shader.Find("WP/Shadow/Diffuse");
+                                break;
+                            case "T4MShaders/ShaderModel2/MobileLM/T4M 2 Textures for Mobile":
+                                mr.sharedMaterial.shader = Shader.Find("WP/Shadow/T4M 2 Textures for Mobile");
+                                break;
+                            case "T4MShaders/ShaderModel2/MobileLM/T4M 3 Textures for Mobile":
+                                mr.sharedMaterial.shader = Shader.Find("WP/Shadow/T4M 3 Textures for Mobile");
+                                break;
+                            case "T4MShaders/ShaderModel2/MobileLM/T4M 4 Textures for Mobile":
+                                mr.sharedMaterial.shader = Shader.Find("WP/Shadow/T4M 4 Textures for Mobile");
+                                break;
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -187,6 +262,7 @@ public class WPShadowInspector : Editor
     SerializedProperty cullingMask;
     SerializedProperty accuracy;
     SerializedProperty shadowDistance;
+    SerializedProperty shadowIdentity;
     SerializedProperty antiAliasing;
     SerializedProperty shadowMapShader;
 
@@ -197,6 +273,7 @@ public class WPShadowInspector : Editor
         cullingMask = serializedObject.FindProperty("cullingMask");
         accuracy = serializedObject.FindProperty("accuracy");
         shadowDistance = serializedObject.FindProperty("shadowDistance");
+        shadowIdentity = serializedObject.FindProperty("shadowIdentity");
         antiAliasing = serializedObject.FindProperty("antiAliasing");
         shadowMapShader = serializedObject.FindProperty("shadowMapShader");
     }
@@ -208,6 +285,7 @@ public class WPShadowInspector : Editor
         EditorGUILayout.PropertyField(cullingMask);
         EditorGUILayout.PropertyField(accuracy);
         EditorGUILayout.PropertyField(shadowDistance);
+        EditorGUILayout.PropertyField(shadowIdentity);
         EditorGUILayout.PropertyField(antiAliasing);
         EditorGUILayout.PropertyField(shadowMapShader);
 
@@ -216,6 +294,19 @@ public class WPShadowInspector : Editor
         if (!shadow.shadowMapShader)
         {
             EditorGUILayout.HelpBox("No shadow map shader selected.", MessageType.Warning);
+
+            if (GUILayout.Button("Auto Fixed"))
+            {
+                shadow.FixShadowMapShader();
+                if (shadow.shadowMapShader)
+                    shadow.enabled = true;
+            }
+            return;
+        }
+
+        if (GUILayout.Button("Auto Fixed Walkable Layer Shaders"))
+        {
+            shadow.FixObjectShaderByLayer(LayerMask.NameToLayer("Walkable"));
         }
     }
 }

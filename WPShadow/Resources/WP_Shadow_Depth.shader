@@ -1,4 +1,4 @@
-﻿Shader "WP/DepthOnly"
+Shader "WP/Shadow/Depth"
 {
 	Properties
 	{
@@ -10,6 +10,7 @@
 		Cull Back
 		ColorMask 0
 		ZWrite On
+		Fog { Mode Off }
 
 		Pass
 		{

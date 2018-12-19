@@ -1,4 +1,4 @@
-﻿Shader "WP/DiffuseShadow"
+﻿Shader "WP/Shadow/Naive"
 {
 	Properties
 	{
@@ -12,14 +12,16 @@
 
 		CGPROGRAM
 		#pragma surface surf Lambert vertex:vert noforwardadd
-		#pragma multi_compile __ WP_SHADOW_AA
+		//#pragma multi_compile __ WP_SHADOW_AA
 
 		sampler2D _MainTex;
 
-		sampler2D WP_ShadowMap;
-		float4 WP_ShadowMap_TexelSize;
-		float4x4 WP_MatrixVPC;
-		float4x4 WP_MatrixV;
+		uniform sampler2D WP_ShadowMap;
+		uniform float4 WP_ShadowMap_TexelSize;
+		uniform float4x4 WP_MatrixVPC;
+		uniform float4x4 WP_MatrixV;
+		uniform float WP_AA;
+		uniform float WP_Identity;
 
 		struct Input {
 			float2 uv_MainTex;
@@ -47,26 +49,27 @@
 		void surf(Input IN, inout SurfaceOutput o) {
 			fixed4 c = tex2D(_MainTex, IN.uv_MainTex);
 
-#ifdef WP_SHADOW_AA
-			/* anti-aliasing */
-			float shadowDepth = 0;
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0, -1.0, 0.0585);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0, -1.0, 0.0965);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0, -1.0, 0.0585);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0,  0.0, 0.0965);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0,  0.0, 0.1529);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0,  0.0, 0.0965);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0,  1.0, 0.0585);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  0.0,  1.0, 0.0965);
-			shadowDepth += GaussianShadowDepth(IN.wp_uvz,  1.0,  1.0, 0.0585);
-#else			
-			float shadowDepth = ClipShadowDepth(tex2D(WP_ShadowMap, IN.wp_uvz.xy).r, IN.wp_uvz);
-#endif
-			float atten = 0.4 * shadowDepth;
-			c.rgb *= (1 - atten);
-
 			o.Albedo = c.rgb;
 			o.Alpha = c.a;
+
+			float shadowDepth = 0;
+			if (WP_AA > 0)
+			{
+				/* anti-aliasing */
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0, -1.0, 0.0585);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 0.0, -1.0, 0.0965);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 1.0, -1.0, 0.0585);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0, 0.0, 0.0965);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 0.0, 0.0, 0.1529);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 1.0, 0.0, 0.0965);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, -1.0, 1.0, 0.0585);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 0.0, 1.0, 0.0965);
+				shadowDepth += GaussianShadowDepth(IN.wp_uvz, 1.0, 1.0, 0.0585);
+			}
+			else
+				shadowDepth = ClipShadowDepth(tex2D(WP_ShadowMap, IN.wp_uvz.xy).r, IN.wp_uvz);
+			float atten = WP_Identity * shadowDepth;
+			o.Albedo.rgb *= (1 - atten);
 		}
 		ENDCG
 	}
