@@ -12,7 +12,7 @@ Shader "WP/Shadow/Diffuse"
 
 		CGPROGRAM
 		#include "WPShadow.cginc"
-		#pragma surface surf Lambert vertex:vert exclude_path:prepass noforwardadd noshadow novertexlights
+		#pragma surface surf Lambert vertex:vert exclude_path:prepass noforwardadd novertexlights //noshadow
 		#pragma exclude_renderers xbox360 ps3
 		#pragma skip_variants UNITY_HDR_ON
 		//#pragma multi_compile __ WP_SHADOW_AA
@@ -41,5 +41,5 @@ Shader "WP/Shadow/Diffuse"
 		}
 		ENDCG
 	}
-	Fallback "Mobile/VertexLit"
+	//Fallback "Mobile/VertexLit"
 }

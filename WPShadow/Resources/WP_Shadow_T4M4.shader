@@ -16,7 +16,7 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 
 		CGPROGRAM
 		#include "WPShadow.cginc"
-		#pragma surface surf T4M vertex:vert exclude_path:prepass noforwardadd noshadow novertexlights
+		#pragma surface surf T4M vertex:vert exclude_path:prepass noforwardadd novertexlights //noshadow
 		#pragma exclude_renderers xbox360 ps3
 		//#pragma multi_compile __ WP_SHADOW_AA
 
@@ -56,5 +56,5 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 		ENDCG 
 	}
 
-	Fallback "Mobile/VertexLit"
+	//Fallback "Mobile/VertexLit"
 }
