@@ -41,7 +41,7 @@
 
 		inline float ClipShadowDepth(float shadowDepth, float3 uvz)
 		{
-			return step(shadowDepth, uvz.z) * step(shadowDepth - 0.9, 0) * step(0, uvz.z)
+			return step(shadowDepth, uvz.z) * step(shadowDepth - 0.9, 0)
 				* step(0, uvz.x) * step(0, uvz.y) * step(uvz.x, 1) * step(uvz, 1);
 		}
 
