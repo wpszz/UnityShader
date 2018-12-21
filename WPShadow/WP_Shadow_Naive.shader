@@ -32,7 +32,11 @@
 			UNITY_INITIALIZE_OUTPUT(Input, o);
 
 			float cullZ = mul((float3x3)WP_MatrixV, mul((float3x3)unity_ObjectToWorld, v.normal)).z;
-			o.wp_uvz = mul(WP_MatrixVPC, mul(unity_ObjectToWorld, v.vertex)).xyz * step(0, cullZ);
+			o.wp_uvz = mul(WP_MatrixVPC, mul(unity_ObjectToWorld, v.vertex)).xyz;
+			// w component always is 1 in orthograhpic clip space, so dont need perspective division.
+			// convert to depth[0, 1] simply from ndc z component
+			o.wp_uvz.z = o.wp_uvz.z * 0.5 + 0.5;
+			o.wp_uvz *= step(0, cullZ);
 		}
 
 		inline float ClipShadowDepth(float shadowDepth, float3 uvz)

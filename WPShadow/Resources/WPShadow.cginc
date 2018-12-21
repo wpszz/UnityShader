@@ -16,8 +16,6 @@ inline float SampleDepth(float2 uv)
 
 inline float ClipShadowDepth(float shadowDepth, float3 uvz)
 {
-	// to [0, 1]
-	uvz.z = uvz.z * 0.5 + 0.5;
 	return step(shadowDepth, uvz.z) * step(shadowDepth, 0.9)
 		* step(0, uvz.x) * step(0, uvz.y) * step(uvz.x, 1) * step(uvz.y, 1);
 }
@@ -58,7 +56,9 @@ inline fixed4 LightingT4M(SurfaceOutput s, fixed3 lightDir, fixed atten)
 
 #define WP_SHADOW_INPUT float3 wp_uvz;
 #define WP_SHADOW_VERT(v, o) float cullZ = mul((float3x3)WP_MatrixV, mul((float3x3)unity_ObjectToWorld, v.normal)).z; \
-	o.wp_uvz = mul(WP_MatrixVPC, mul(unity_ObjectToWorld, v.vertex)).xyz * step(0, cullZ);
+	o.wp_uvz = mul(WP_MatrixVPC, mul(unity_ObjectToWorld, v.vertex)).xyz; \
+	o.wp_uvz.z = o.wp_uvz.z * 0.5 + 0.5; \
+	o.wp_uvz *= step(0, cullZ);
 #define WP_SHADOW_SURF(IN, c) c.rgb *= WPShadowAtten(IN.wp_uvz); 
 
 #endif
