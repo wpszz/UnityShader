@@ -11,7 +11,9 @@
 		LOD 150
 
 		CGPROGRAM
-		#pragma surface surf Lambert vertex:vert noforwardadd
+		#pragma surface surf Lambert vertex:vert exclude_path:prepass noforwardadd novertexlights //noshadow
+		#pragma exclude_renderers xbox360 ps3
+		#pragma skip_variants UNITY_HDR_ON
 		//#pragma multi_compile __ WP_SHADOW_AA
 
 		sampler2D _MainTex;
@@ -77,5 +79,5 @@
 		}
 		ENDCG
 	}
-	Fallback "Custom/Mobile/VertexLit"
+	//Fallback "Mobile/VertexLit"
 }
