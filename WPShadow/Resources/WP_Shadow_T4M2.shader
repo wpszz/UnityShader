@@ -14,7 +14,7 @@ Shader "WP/Shadow/T4M 2 Textures for Mobile" {
 
 		CGPROGRAM
 		#include "WPShadow.cginc"
-		#pragma surface surf T4M vertex:vert exclude_path:prepass noforwardadd novertexlights //noshadow
+		#pragma surface surf T4M vertex:vert exclude_path:prepass noforwardadd novertexlights addshadow //addshadow for depth texture
 		#pragma exclude_renderers xbox360 ps3
 		//#pragma multi_compile __ WP_SHADOW_AA
 

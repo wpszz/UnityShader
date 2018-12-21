@@ -344,7 +344,7 @@ public class WPShadowInspector : Editor
 
         EditorGUILayout.Separator();
         GUI.color = Color.yellow;
-        if (GUILayout.Button("Test: Fixed Walkable Layer Shaders"))
+        if (GUILayout.Button("EditorTest: Convert layer of walkable shaders"))
         {
             shadow.FixObjectShaderByLayer(LayerMask.NameToLayer("Walkable"));
         }
