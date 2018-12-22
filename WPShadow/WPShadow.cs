@@ -189,6 +189,7 @@ public class WPShadow : MonoBehaviour
 
         m_shadowMapSize = size;
         m_shadowMap = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.Default);
+        m_shadowMap.filterMode = FilterMode.Point;
         shadowCamera.targetTexture = m_shadowMap;
         Shader.SetGlobalTexture(ID_WP_ShadowMap, m_shadowMap);
     }
