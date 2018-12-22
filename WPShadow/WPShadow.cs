@@ -10,6 +10,14 @@ using UnityEditorInternal;
 [RequireComponent(typeof(Light))]
 public class WPShadow : MonoBehaviour
 {
+    public enum AnitAliasing
+    {
+        None = 0,
+        X2 = 1,
+        X4 = 2,
+        X8 = 3,
+    }
+
     public static int activeCullingMask
     {
         get;
@@ -25,8 +33,7 @@ public class WPShadow : MonoBehaviour
     [Range(0f, 1f)]
     public float shadowIdentity = 0.4f;
 
-    [Range(0, 3)]
-    public int antiAliasing;
+    public AnitAliasing antiAliasing;
 
     public bool autoControl;
 
@@ -155,13 +162,13 @@ public class WPShadow : MonoBehaviour
             {
                 accuracy = 3;
                 shadowDistance = 15;
-                antiAliasing = 2;
+                antiAliasing = AnitAliasing.X2;
             }
             else if (lv >= 2)
             {
                 accuracy = 2;
                 shadowDistance = 10;
-                antiAliasing = 0;
+                antiAliasing = AnitAliasing.None;
             }
             else
             {
@@ -244,7 +251,7 @@ public class WPShadow : MonoBehaviour
         Matrix4x4 VPC = m_correction4x4 * projection * worldToView;
         Shader.SetGlobalMatrix(ID_WP_MatrixV, worldToView);
         Shader.SetGlobalMatrix(ID_WP_MatrixVPC, VPC);
-        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIdentity, antiAliasing, zMin, 1f / (zMax - zMin)));
+        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIdentity, (int)antiAliasing, zMin, 1f / (zMax - zMin)));
 
         shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
     }
