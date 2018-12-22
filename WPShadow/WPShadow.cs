@@ -25,7 +25,8 @@ public class WPShadow : MonoBehaviour
     [Range(0f, 1f)]
     public float shadowIdentity = 0.4f;
 
-    public bool antiAliasing;
+    [Range(0, 3)]
+    public int antiAliasing;
 
     public bool autoControl;
 
@@ -47,7 +48,7 @@ public class WPShadow : MonoBehaviour
                 m_shadowCamera = node.gameObject.AddComponent<Camera>();
                 m_shadowCamera.enabled = false;
                 m_shadowCamera.clearFlags = CameraClearFlags.SolidColor;
-                m_shadowCamera.backgroundColor = new Color(0, 0, 0, 0);
+                m_shadowCamera.backgroundColor = Color.black;
                 m_shadowCamera.renderingPath = RenderingPath.VertexLit;
                 m_shadowCamera.hdr = false;
                 m_shadowCamera.useOcclusionCulling = false;
@@ -74,8 +75,7 @@ public class WPShadow : MonoBehaviour
     private int ID_WP_ShadowMap;
     private int ID_WP_MatrixV;
     private int ID_WP_MatrixVPC;
-    private int ID_WP_Identity;
-    private int ID_WP_AA;
+    private int ID_WP_ControlParams;
 
     private void Awake()
     {
@@ -88,8 +88,7 @@ public class WPShadow : MonoBehaviour
         ID_WP_ShadowMap = Shader.PropertyToID("WP_ShadowMap");
         ID_WP_MatrixV = Shader.PropertyToID("WP_MatrixV");
         ID_WP_MatrixVPC = Shader.PropertyToID("WP_MatrixVPC");
-        ID_WP_Identity = Shader.PropertyToID("WP_Identity");
-        ID_WP_AA = Shader.PropertyToID("WP_AA");
+        ID_WP_ControlParams = Shader.PropertyToID("WP_ControlParams");
 
         m_mainCamera = Camera.main;
         m_transMainCamera = m_mainCamera.transform;
@@ -103,7 +102,7 @@ public class WPShadow : MonoBehaviour
         m_correction4x4.SetRow(2, new Vector4(0, 0, 1, 0));
         m_correction4x4.SetRow(3, new Vector4(0, 0, 0, 1));
 
-        if (!m_mainCamera || !shadowMapShader || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.Depth))
+        if (!m_mainCamera || !shadowMapShader)
         {
             this.enabled = false;
             return;
@@ -133,8 +132,7 @@ public class WPShadow : MonoBehaviour
         m_shadowMap = null;
         m_shadowMapSize = 0;
         Shader.SetGlobalTexture(ID_WP_ShadowMap, null);
-        Shader.SetGlobalFloat(ID_WP_Identity, 0);
-        Shader.SetGlobalInt(ID_WP_AA, 0);
+        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(0f, 0f, 0f, 1f));
         activeCullingMask = 0;
     }
 
@@ -157,13 +155,13 @@ public class WPShadow : MonoBehaviour
             {
                 accuracy = 3;
                 shadowDistance = 15;
-                antiAliasing = true;
+                antiAliasing = 2;
             }
             else if (lv >= 2)
             {
                 accuracy = 2;
                 shadowDistance = 10;
-                antiAliasing = false;
+                antiAliasing = 0;
             }
             else
             {
@@ -183,7 +181,7 @@ public class WPShadow : MonoBehaviour
             RenderTexture.ReleaseTemporary(m_shadowMap);
 
         m_shadowMapSize = size;
-        m_shadowMap = RenderTexture.GetTemporary(size, size, 16, RenderTextureFormat.Depth);
+        m_shadowMap = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.Default);
         shadowCamera.targetTexture = m_shadowMap;
         Shader.SetGlobalTexture(ID_WP_ShadowMap, m_shadowMap);
     }
@@ -240,15 +238,15 @@ public class WPShadow : MonoBehaviour
         shadowCamera.nearClipPlane = zMin;
         shadowCamera.farClipPlane = zMax;
         shadowCamera.cullingMask = activeCullingMask;
-        shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
 
         Matrix4x4 worldToView = shadowCamera.worldToCameraMatrix;
         Matrix4x4 projection = GL.GetGPUProjectionMatrix(shadowCamera.projectionMatrix, false);
         Matrix4x4 VPC = m_correction4x4 * projection * worldToView;
         Shader.SetGlobalMatrix(ID_WP_MatrixV, worldToView);
         Shader.SetGlobalMatrix(ID_WP_MatrixVPC, VPC);
-        Shader.SetGlobalFloat(ID_WP_Identity, shadowIdentity);
-        Shader.SetGlobalInt(ID_WP_AA, antiAliasing ? 1 : 0);
+        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIdentity, antiAliasing, zMin, 1f / (zMax - zMin)));
+
+        shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
     }
 
     public void FixShadowMapShader()

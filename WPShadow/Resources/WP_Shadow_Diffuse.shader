@@ -11,11 +11,13 @@ Shader "WP/Shadow/Diffuse"
 		LOD 150
 
 		CGPROGRAM
-		#include "WPShadow.cginc"
+
 		#pragma surface surf Lambert vertex:vert exclude_path:prepass noforwardadd novertexlights addshadow //addshadow for depth texture
 		#pragma exclude_renderers xbox360 ps3
 		#pragma skip_variants UNITY_HDR_ON
 		//#pragma multi_compile __ WP_SHADOW_AA
+
+		#include "WPShadow.cginc"
 
 		sampler2D _MainTex;
 

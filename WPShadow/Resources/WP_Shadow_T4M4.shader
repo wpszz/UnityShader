@@ -15,10 +15,11 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 		}
 
 		CGPROGRAM
-		#include "WPShadow.cginc"
 		#pragma surface surf T4M vertex:vert exclude_path:prepass noforwardadd novertexlights addshadow //addshadow for depth texture
 		#pragma exclude_renderers xbox360 ps3
 		//#pragma multi_compile __ WP_SHADOW_AA
+				
+		#include "WPShadow.cginc"
 
 		struct Input {
 			float2 uv_Control : TEXCOORD0;
@@ -53,6 +54,16 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 
 			WP_SHADOW_SURF(IN, o.Albedo);
 		}
+
+		inline fixed4 LightingT4M(SurfaceOutput s, fixed3 lightDir, fixed atten)
+		{
+			fixed diff = dot(s.Normal, lightDir);
+			fixed4 c;
+			c.rgb = s.Albedo * _LightColor0.rgb * (diff * atten * 2);
+			c.a = 0.0;
+			return c;
+		}
+
 		ENDCG 
 	}
 
