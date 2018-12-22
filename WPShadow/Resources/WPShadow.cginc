@@ -13,8 +13,7 @@ inline float LightCameraDepth01(float z) {
 
 inline float SampleDepth(float2 uv)
 {
-	float depth = tex2D(WP_ShadowMap, uv).r;
-	return depth;
+	return DecodeFloatRGBA(tex2D(WP_ShadowMap, uv));
 }
 
 inline float ClipShadowDepth(float shadowDepth, float3 uvz)
