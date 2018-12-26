@@ -16,7 +16,7 @@ public class WPOutline : MonoBehaviour
     [Range(0f, 1f)]
     public float outlineIntensity = 0.5f;
 
-    [Range(0.5f, 10f)]
+    [Range(0.1f, 10f)]
     public float outlinePower = 3f;
 
     public Color outlineColor = Color.cyan;

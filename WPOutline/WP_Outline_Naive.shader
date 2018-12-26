@@ -46,7 +46,7 @@
 			float normalDot = DecodeFloatRG(depthNormal.zw);
 			float selfDepth = IN.wp_screenPos.z;
 			half lerp = step(selfDepth, depth) * WP_OutlineParams.x;
-			float rim = pow(1 - normalDot, WP_OutlineParams.y);
+			float rim = pow(normalDot, WP_OutlineParams.y);
 			o.Albedo.rgb = o.Albedo.rgb * (1 - lerp) + WP_OutlineColor.rgb * rim * lerp;
 		}
 		ENDCG
