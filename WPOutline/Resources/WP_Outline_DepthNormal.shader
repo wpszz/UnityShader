@@ -18,6 +18,7 @@ Shader "WP/Outline/DepthNormal"
 			#pragma fragment frag
 
 			#include "UnityCG.cginc"
+			#include "WPOutline.cginc"
 
 			struct appdata_t {
 				float4 vertex : POSITION;
@@ -37,6 +38,7 @@ Shader "WP/Outline/DepthNormal"
 				float3 worldViewDir = _WorldSpaceCameraPos.xyz - o.vertex;
 				float3 worldNormal = mul((float3x3)UNITY_MATRIX_M, v.normal);
 				o.depthNormal.y = saturate(dot(normalize(worldViewDir), normalize(worldNormal)));
+				o.depthNormal.y = pow(o.depthNormal.y, WP_OutlineParams.y);
 				return o;
 			}
 

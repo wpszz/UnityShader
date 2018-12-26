@@ -11,6 +11,7 @@
 		LOD 150
 
 		CGPROGRAM
+
 		#pragma surface surf Lambert vertex:vert exclude_path:prepass noforwardadd novertexlights addshadow //addshadow for depth texture 
 		#pragma exclude_renderers xbox360 ps3
 		#pragma skip_variants UNITY_HDR_ON
@@ -35,19 +36,23 @@
 			o.wp_screenPos.z = COMPUTE_DEPTH_01;
 		}
 
+		inline half3 Outline(float4 screenPos, half3 albedo)
+		{
+			half4 depthNormal = tex2Dproj(WP_DepthNormalMap, screenPos);
+			float depth = DecodeFloatRG(depthNormal.xy);
+			float rim = DecodeFloatRG(depthNormal.zw);
+			float selfDepth = screenPos.z;
+			half lerp = step(selfDepth, depth) * WP_OutlineParams.x;
+			return albedo * (1 - lerp) + WP_OutlineColor.rgb * rim * lerp;
+		}
+
 		void surf(Input IN, inout SurfaceOutput o) {
 			fixed4 c = tex2D(_MainTex, IN.uv_MainTex);
 
 			o.Albedo = c.rgb;
 			o.Alpha = c.a;
 
-			half4 depthNormal = tex2Dproj(WP_DepthNormalMap, IN.wp_screenPos);
-			float depth = DecodeFloatRG(depthNormal.xy);
-			float normalDot = DecodeFloatRG(depthNormal.zw);
-			float selfDepth = IN.wp_screenPos.z;
-			half lerp = step(selfDepth, depth) * WP_OutlineParams.x;
-			float rim = pow(normalDot, WP_OutlineParams.y);
-			o.Albedo.rgb = o.Albedo.rgb * (1 - lerp) + WP_OutlineColor.rgb * rim * lerp;
+			o.Albedo.rgb = Outline(IN.wp_screenPos, o.Albedo.rgb);
 		}
 		ENDCG
 	}

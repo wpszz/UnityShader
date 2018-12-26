@@ -186,7 +186,7 @@ public class WPOutline : MonoBehaviour
                         switch (shader.name)
                         {
                             case "Mobile/Diffuse":
-                                mr.sharedMaterial.shader = Shader.Find("WP/Outline/Naive");
+                                mr.sharedMaterial.shader = Shader.Find("WP/Outline/Diffuse");
                                 break;
                         }
                     }
