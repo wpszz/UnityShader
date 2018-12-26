@@ -7,37 +7,40 @@ using UnityEditor;
 using UnityEditorInternal;
 #endif
 
+public enum ShadowAnitAliasing
+{
+    None = 0,
+    X2 = 1,
+    X4 = 2,
+    X8 = 3,
+}
+
+[Serializable]
+public class WPShadowSetting
+{
+    public LayerMask cullingMask;
+    [Range(1, 3)]
+    public int accuracy = 2;
+    [Range(1f, 20f)]
+    public float shadowDistance = 10f;
+    [Range(0f, 1f)]
+    public float shadowIntensity = 0.5f;
+    public ShadowAnitAliasing antiAliasing = ShadowAnitAliasing.None;
+}
+
 [RequireComponent(typeof(Light))]
 public class WPShadow : MonoBehaviour
 {
-    public enum AnitAliasing
-    {
-        None = 0,
-        X2 = 1,
-        X4 = 2,
-        X8 = 3,
-    }
-
     public static int activeCullingMask
     {
         get;
         private set;
     }
 
-    [Range(1, 3)]
-    public int accuracy = 2;
+    public WPShadowSetting highSetting = new WPShadowSetting();
+    public WPShadowSetting midSetting = new WPShadowSetting();
+    public WPShadowSetting lowSetting = new WPShadowSetting();
 
-    [Range(1f, 20f)]
-    public float shadowDistance = 10f;
-
-    [Range(0f, 1f)]
-    public float shadowIntensity = 0.4f;
-
-    public AnitAliasing antiAliasing;
-
-    public bool autoControl;
-
-    public LayerMask cullingMask;
     public Shader shadowMapShader;
 
     private Camera m_shadowCamera;
@@ -115,7 +118,7 @@ public class WPShadow : MonoBehaviour
             return;
         }
 
-        activeCullingMask = cullingMask;
+        activeCullingMask = GetCurrentSetting().cullingMask;
     }
 
     private void OnDestroy()
@@ -145,41 +148,32 @@ public class WPShadow : MonoBehaviour
 
     private void Update()
     {
-        UpdateAutoControl();
+        WPShadowSetting setting = GetCurrentSetting();
 
-        UpdateShadowDepthMap();
-
-        UpdateShadowMap();
-    }
-
-    private void UpdateAutoControl()
-    {
-        if (autoControl)
+        if (setting.cullingMask == 0 || setting.shadowIntensity <= 0.0001f)
         {
-            // control by quality setting
-            int lv = QualitySettings.GetQualityLevel();
-            if (lv >= 3)
-            {
-                accuracy = 3;
-                shadowDistance = 15;
-                antiAliasing = AnitAliasing.X2;
-            }
-            else if (lv >= 2)
-            {
-                accuracy = 2;
-                shadowDistance = 10;
-                antiAliasing = AnitAliasing.None;
-            }
-            else
-            {
-                ClearShadow();
-            }
+            ClearShadow();
+            return;
         }
+
+        UpdateShadowDepthMap(setting);
+
+        UpdateShadowMap(setting);
     }
 
-    private void UpdateShadowDepthMap()
+    private WPShadowSetting GetCurrentSetting()
     {
-        int size = accuracy == 3 ? 2048 : (accuracy == 2 ? 1024 : 512);
+        int lv = QualitySettings.GetQualityLevel();
+        if (lv >= 3)
+            return highSetting;
+        if (lv >= 2)
+            return midSetting;
+        return lowSetting;
+    }
+
+    private void UpdateShadowDepthMap(WPShadowSetting setting)
+    {
+        int size = setting.accuracy == 3 ? 2048 : (setting.accuracy == 2 ? 1024 : 512);
 
         if (size == m_shadowMapSize)
             return;
@@ -194,7 +188,7 @@ public class WPShadow : MonoBehaviour
         Shader.SetGlobalTexture(ID_WP_ShadowMap, m_shadowMap);
     }
 
-    private void UpdateShadowMap()
+    private void UpdateShadowMap(WPShadowSetting setting)
     {
         /*
          * 0      1
@@ -205,7 +199,7 @@ public class WPShadow : MonoBehaviour
         float tanHalfFov = Mathf.Tan(m_mainCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
         float nearHalfHeight = tanHalfFov * nearDistance;
         float nearHalfWidth = nearHalfHeight * m_mainCamera.aspect;
-        float farHalfHeight = tanHalfFov * shadowDistance;
+        float farHalfHeight = tanHalfFov * setting.shadowDistance;
         float farHalfWidth = farHalfHeight * m_mainCamera.aspect;
 
         m_frustumVertexs[0] = new Vector3(-nearHalfWidth, nearHalfHeight, nearDistance);
@@ -213,10 +207,10 @@ public class WPShadow : MonoBehaviour
         m_frustumVertexs[2] = new Vector3(-nearHalfWidth, -nearHalfHeight, nearDistance);
         m_frustumVertexs[3] = new Vector3(nearHalfWidth, -nearHalfHeight, nearDistance);
 
-        m_frustumVertexs[4] = new Vector3(-farHalfWidth, farHalfHeight, shadowDistance);
-        m_frustumVertexs[5] = new Vector3(farHalfWidth, farHalfHeight, shadowDistance);
-        m_frustumVertexs[6] = new Vector3(-farHalfWidth, -farHalfHeight, shadowDistance);
-        m_frustumVertexs[7] = new Vector3(farHalfWidth, -farHalfHeight, shadowDistance);
+        m_frustumVertexs[4] = new Vector3(-farHalfWidth, farHalfHeight, setting.shadowDistance);
+        m_frustumVertexs[5] = new Vector3(farHalfWidth, farHalfHeight, setting.shadowDistance);
+        m_frustumVertexs[6] = new Vector3(-farHalfWidth, -farHalfHeight, setting.shadowDistance);
+        m_frustumVertexs[7] = new Vector3(farHalfWidth, -farHalfHeight, setting.shadowDistance);
 
         Matrix4x4 viewToWorld = m_transMainCamera.localToWorldMatrix;
         Matrix4x4 worldToLight = m_transLight.worldToLocalMatrix;
@@ -239,7 +233,7 @@ public class WPShadow : MonoBehaviour
         }
 
         // sync with main camera
-        activeCullingMask = cullingMask & m_mainCamera.cullingMask;
+        activeCullingMask = setting.cullingMask & m_mainCamera.cullingMask;
 
         m_transShadowCamera.localPosition = new Vector3((xMin + xMax) * 0.5f, (yMin + yMax) * 0.5f, 0);
         shadowCamera.orthographicSize = Mathf.Max((xMax - xMin) * 0.5f, (yMax - yMin) * 0.5f);
@@ -252,7 +246,7 @@ public class WPShadow : MonoBehaviour
         Matrix4x4 VPC = m_correction4x4 * projection * worldToView;
         Shader.SetGlobalMatrix(ID_WP_MatrixV, worldToView);
         Shader.SetGlobalMatrix(ID_WP_MatrixVPC, VPC);
-        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIntensity, (int)antiAliasing, zMin, 1f / (zMax - zMin)));
+        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(setting.shadowIntensity, (int)setting.antiAliasing, zMin, 1f / (zMax - zMin)));
 
         shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
     }
@@ -303,45 +297,14 @@ public class WPShadowInspector : Editor
 {
     WPShadow shadow;
 
-    SerializedProperty cullingMask;
-    SerializedProperty accuracy;
-    SerializedProperty shadowDistance;
-    SerializedProperty shadowIntensity;
-    SerializedProperty antiAliasing;
-    SerializedProperty autoControl;
-    SerializedProperty shadowMapShader;
-
     void OnEnable()
     {
         shadow = target as WPShadow;
-
-        cullingMask = serializedObject.FindProperty("cullingMask");
-        accuracy = serializedObject.FindProperty("accuracy");
-        shadowDistance = serializedObject.FindProperty("shadowDistance");
-        shadowIntensity = serializedObject.FindProperty("shadowIntensity");
-        antiAliasing = serializedObject.FindProperty("antiAliasing");
-        autoControl = serializedObject.FindProperty("autoControl");
-        shadowMapShader = serializedObject.FindProperty("shadowMapShader");
     }
 
     public override void OnInspectorGUI()
     {
-        serializedObject.Update();
-
-        EditorGUILayout.PropertyField(cullingMask);
-        GUI.color = Color.white;
-        EditorGUILayout.PropertyField(shadowIntensity);
-        GUI.color = shadow.autoControl ? Color.gray : Color.white;
-        EditorGUILayout.PropertyField(accuracy);
-        GUI.color = shadow.autoControl ? Color.gray : Color.white;
-        EditorGUILayout.PropertyField(shadowDistance);
-        GUI.color = shadow.autoControl ? Color.gray : Color.white;
-        EditorGUILayout.PropertyField(antiAliasing);
-        GUI.color = Color.white;
-        EditorGUILayout.PropertyField(autoControl);
-        EditorGUILayout.PropertyField(shadowMapShader);
-
-        serializedObject.ApplyModifiedProperties();
+        base.OnInspectorGUI();
 
         if (!shadow.shadowMapShader)
         {

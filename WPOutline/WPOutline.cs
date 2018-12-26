@@ -7,36 +7,38 @@ using UnityEditor;
 using UnityEditorInternal;
 #endif
 
+public enum OutlineAnitAliasing
+{
+    None = 0,
+    X2 = 1,
+    X4 = 2,
+    X8 = 3,
+}
+
+[Serializable]
+public class WPOutlineSetting
+{
+    public LayerMask cullingMask;
+    [Range(1, 3)]
+    public int accuracy = 2;
+    [Range(0f, 1f)]
+    public float outlineIntensity = 0.5f;
+    public OutlineAnitAliasing antiAliasing = OutlineAnitAliasing.None;
+    [Range(0.5f, 10f)]
+    public float antiAliasingSize = 2f;
+}
+
 [RequireComponent(typeof(Camera))]
 public class WPOutline : MonoBehaviour
 {
-    public enum AnitAliasing
-    {
-        None = 0,
-        X2 = 1,
-        X4 = 2,
-        X8 = 3,
-    }
-
-    [Range(1, 3)]
-    public int accuracy = 2;
-
-    [Range(0f, 1f)]
-    public float outlineIntensity = 0.5f;
+    public WPOutlineSetting highSetting = new WPOutlineSetting();
+    public WPOutlineSetting midSetting = new WPOutlineSetting();
+    public WPOutlineSetting lowSetting = new WPOutlineSetting();
 
     [Range(0.1f, 5f)]
     public float outlinePower = 0.5f;
-
     public Color outlineColor = Color.cyan;
 
-    public AnitAliasing antiAliasing;
-
-    [Range(0.5f, 10f)]
-    public float antiAliasingSize = 2f;
-
-    public bool autoControl;
-
-    public LayerMask cullingMask;
     public Shader depthNormalMapShader;
 
     private Camera m_depthNormalCamera;
@@ -119,39 +121,32 @@ public class WPOutline : MonoBehaviour
 
     private void Update()
     {
-        UpdateAutoControl();
+        WPOutlineSetting setting = GetCurrentSetting();
 
-        UpdateDepthNormalMap();
-
-        UpdateOutlineRender();
-    }
-
-    private void UpdateAutoControl()
-    {
-        if (autoControl)
+        if (setting.cullingMask == 0 || setting.outlineIntensity <= 0.0001f)
         {
-            // control by quality setting
-            int lv = QualitySettings.GetQualityLevel();
-            if (lv >= 3)
-            {
-                accuracy = 3;
-                antiAliasing = AnitAliasing.X2;
-            }
-            else if (lv >= 2)
-            {
-                accuracy = 2;
-                antiAliasing = AnitAliasing.X2;
-            }
-            else
-            {
-                ClearOutline();
-            }
+            ClearOutline();
+            return;
         }
+
+        UpdateDepthNormalMap(setting);
+
+        UpdateOutlineRender(setting);
     }
 
-    private void UpdateDepthNormalMap()
+    private WPOutlineSetting GetCurrentSetting()
     {
-        int size = accuracy == 3 ? 1024 : (accuracy == 2 ? 512 : 256);
+        int lv = QualitySettings.GetQualityLevel();
+        if (lv >= 3)
+            return highSetting;
+        if (lv >= 2)
+            return midSetting;
+        return lowSetting;
+    }
+
+    private void UpdateDepthNormalMap(WPOutlineSetting setting)
+    {
+        int size = setting.accuracy == 3 ? 1024 : (setting.accuracy == 2 ? 512 : 256);
 
         if (size == m_depthNormalMapSize)
             return;
@@ -166,7 +161,7 @@ public class WPOutline : MonoBehaviour
         Shader.SetGlobalTexture(ID_WP_DepthNormalMap, m_depthNormalMap);
     }
 
-    private void UpdateOutlineRender()
+    private void UpdateOutlineRender(WPOutlineSetting setting)
     {
         depthNormal.aspect = m_mainCamera.aspect;
         depthNormal.fieldOfView = m_mainCamera.fieldOfView;
@@ -174,9 +169,9 @@ public class WPOutline : MonoBehaviour
         depthNormal.orthographicSize = m_mainCamera.orthographicSize;
         depthNormal.nearClipPlane = m_mainCamera.nearClipPlane;
         depthNormal.farClipPlane = m_mainCamera.farClipPlane;
-        depthNormal.cullingMask = cullingMask & m_mainCamera.cullingMask;
+        depthNormal.cullingMask = setting.cullingMask & m_mainCamera.cullingMask;
 
-        Shader.SetGlobalVector(ID_WP_OutlineParams, new Vector4(outlineIntensity, (int)antiAliasing, outlinePower, antiAliasingSize));
+        Shader.SetGlobalVector(ID_WP_OutlineParams, new Vector4(setting.outlineIntensity, (int)setting.antiAliasing, outlinePower, setting.antiAliasingSize));
         Shader.SetGlobalColor(ID_WP_OutlineColor, outlineColor);
 
         depthNormal.RenderWithShader(depthNormalMapShader, "RenderType");
@@ -219,50 +214,14 @@ public class WPOutlineInspector : Editor
 {
     WPOutline outline;
 
-    SerializedProperty cullingMask;
-    SerializedProperty accuracy;
-    SerializedProperty outlineIntensity;
-    SerializedProperty outlinePower;
-    SerializedProperty outlineColor;
-    SerializedProperty antiAliasing;
-    SerializedProperty antiAliasingSize;
-    SerializedProperty autoControl;
-    SerializedProperty depthNormalMapShader;
-
     void OnEnable()
     {
         outline = target as WPOutline;
-
-        cullingMask = serializedObject.FindProperty("cullingMask");
-        accuracy = serializedObject.FindProperty("accuracy");
-        outlineIntensity = serializedObject.FindProperty("outlineIntensity");
-        outlinePower = serializedObject.FindProperty("outlinePower");
-        outlineColor = serializedObject.FindProperty("outlineColor");
-        antiAliasing = serializedObject.FindProperty("antiAliasing");
-        antiAliasingSize = serializedObject.FindProperty("antiAliasingSize");
-        autoControl = serializedObject.FindProperty("autoControl");
-        depthNormalMapShader = serializedObject.FindProperty("depthNormalMapShader");
     }
 
     public override void OnInspectorGUI()
     {
-        serializedObject.Update();
-
-        EditorGUILayout.PropertyField(cullingMask);
-        GUI.color = Color.white;
-        EditorGUILayout.PropertyField(outlineIntensity);
-        EditorGUILayout.PropertyField(outlinePower);
-        EditorGUILayout.PropertyField(outlineColor);
-        GUI.color = outline.autoControl ? Color.gray : Color.white;
-        EditorGUILayout.PropertyField(accuracy);
-        GUI.color = outline.autoControl ? Color.gray : Color.white;
-        EditorGUILayout.PropertyField(antiAliasing);
-        EditorGUILayout.PropertyField(antiAliasingSize);
-        GUI.color = Color.white;
-        EditorGUILayout.PropertyField(autoControl);
-        EditorGUILayout.PropertyField(depthNormalMapShader);
-
-        serializedObject.ApplyModifiedProperties();
+        base.OnInspectorGUI();
 
         if (!outline.depthNormalMapShader)
         {
