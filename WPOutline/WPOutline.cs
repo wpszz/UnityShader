@@ -74,11 +74,13 @@ public class WPOutline : MonoBehaviour
     private int ID_WP_OutlineParams;
     private int ID_WP_OutlineColor;
 
+#if UNITY_EDITOR
     private void Awake()
     {
         if (!depthNormalMapShader)
             FixShadowMapShader();
     }
+#endif
 
     private void Start()
     {
@@ -177,6 +179,7 @@ public class WPOutline : MonoBehaviour
         depthNormal.RenderWithShader(depthNormalMapShader, "RenderType");
     }
 
+#if UNITY_EDITOR
     public void FixShadowMapShader()
     {
         depthNormalMapShader = Shader.Find("WP/Outline/DepthNormal");
@@ -204,6 +207,7 @@ public class WPOutline : MonoBehaviour
             }
         }
     }
+#endif
 }
 
 

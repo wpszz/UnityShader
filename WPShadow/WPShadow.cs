@@ -87,11 +87,13 @@ public class WPShadow : MonoBehaviour
     private int ID_WP_MatrixVPC;
     private int ID_WP_ControlParams;
 
+#if UNITY_EDITOR
     private void Awake()
     {
         if (!shadowMapShader)
             FixShadowMapShader();
     }
+#endif
 
     private void Start()
     {
@@ -251,6 +253,7 @@ public class WPShadow : MonoBehaviour
         shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
     }
 
+#if UNITY_EDITOR
     public void FixShadowMapShader()
     {
         shadowMapShader = Shader.Find("WP/Shadow/Depth");
@@ -287,6 +290,7 @@ public class WPShadow : MonoBehaviour
             }
         }
     }
+#endif
 }
 
 
