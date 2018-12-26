@@ -22,7 +22,7 @@
 		uniform float4 WP_ShadowMap_TexelSize;
 		uniform float4x4 WP_MatrixVPC;
 		uniform float4x4 WP_MatrixV;
-		uniform float4 WP_ControlParams; // x: idensity y:anti-aliasing z:zNear w:1/(zFar - zNear)
+		uniform float4 WP_ControlParams; // x: intensity y:anti-aliasing z:zNear w:1/(zFar - zNear)
 
 		struct Input {
 			float2 uv_MainTex;

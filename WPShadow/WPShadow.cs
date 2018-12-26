@@ -31,7 +31,7 @@ public class WPShadow : MonoBehaviour
     public float shadowDistance = 10f;
 
     [Range(0f, 1f)]
-    public float shadowIdentity = 0.4f;
+    public float shadowIntensity = 0.4f;
 
     public AnitAliasing antiAliasing;
 
@@ -252,7 +252,7 @@ public class WPShadow : MonoBehaviour
         Matrix4x4 VPC = m_correction4x4 * projection * worldToView;
         Shader.SetGlobalMatrix(ID_WP_MatrixV, worldToView);
         Shader.SetGlobalMatrix(ID_WP_MatrixVPC, VPC);
-        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIdentity, (int)antiAliasing, zMin, 1f / (zMax - zMin)));
+        Shader.SetGlobalVector(ID_WP_ControlParams, new Vector4(shadowIntensity, (int)antiAliasing, zMin, 1f / (zMax - zMin)));
 
         shadowCamera.RenderWithShader(shadowMapShader, "RenderType");
     }
@@ -306,7 +306,7 @@ public class WPShadowInspector : Editor
     SerializedProperty cullingMask;
     SerializedProperty accuracy;
     SerializedProperty shadowDistance;
-    SerializedProperty shadowIdentity;
+    SerializedProperty shadowIntensity;
     SerializedProperty antiAliasing;
     SerializedProperty autoControl;
     SerializedProperty shadowMapShader;
@@ -318,7 +318,7 @@ public class WPShadowInspector : Editor
         cullingMask = serializedObject.FindProperty("cullingMask");
         accuracy = serializedObject.FindProperty("accuracy");
         shadowDistance = serializedObject.FindProperty("shadowDistance");
-        shadowIdentity = serializedObject.FindProperty("shadowIdentity");
+        shadowIntensity = serializedObject.FindProperty("shadowIntensity");
         antiAliasing = serializedObject.FindProperty("antiAliasing");
         autoControl = serializedObject.FindProperty("autoControl");
         shadowMapShader = serializedObject.FindProperty("shadowMapShader");
@@ -329,12 +329,12 @@ public class WPShadowInspector : Editor
         serializedObject.Update();
 
         EditorGUILayout.PropertyField(cullingMask);
+        GUI.color = Color.white;
+        EditorGUILayout.PropertyField(shadowIntensity);
         GUI.color = shadow.autoControl ? Color.gray : Color.white;
         EditorGUILayout.PropertyField(accuracy);
         GUI.color = shadow.autoControl ? Color.gray : Color.white;
         EditorGUILayout.PropertyField(shadowDistance);
-        GUI.color = Color.white;
-        EditorGUILayout.PropertyField(shadowIdentity);
         GUI.color = shadow.autoControl ? Color.gray : Color.white;
         EditorGUILayout.PropertyField(antiAliasing);
         GUI.color = Color.white;

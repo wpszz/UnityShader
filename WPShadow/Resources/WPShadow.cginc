@@ -38,7 +38,7 @@ inline float ShadowAtten(float3 uvz) {
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.4);
 		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.3);
 	}
-	else if (WP_ControlParams.y < 3)
+	else /*if (WP_ControlParams.y < 3)*/
 	{
 		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.15);
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.15);
@@ -46,6 +46,7 @@ inline float ShadowAtten(float3 uvz) {
 		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.15);
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.15);
 	}
+	/*
 	else
 	{
 		shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.0585);
@@ -58,6 +59,7 @@ inline float ShadowAtten(float3 uvz) {
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.0965);
 		shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.0585);
 	}
+	*/
 	return 1 - WP_ControlParams.x * shadowDepth;
 }
 
