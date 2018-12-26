@@ -79,15 +79,15 @@
 			}
 			else
 			{
-				shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.0585);
-				shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.0965);
-				shadowDepth += GaussianShadowDepth(uvz, 1.0, -1.0, 0.0585);
-				shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.0965);
-				shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.1529);
-				shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.0965);
-				shadowDepth += GaussianShadowDepth(uvz, -1.0, 1.0, 0.0585);
-				shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.0965);
-				shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.0585);
+				shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.075);
+				shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.1);
+				shadowDepth += GaussianShadowDepth(uvz, 1.0, -1.0, 0.075);
+				shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.1);
+				shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.3);
+				shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.1);
+				shadowDepth += GaussianShadowDepth(uvz, -1.0, 1.0, 0.075);
+				shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.1);
+				shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.075);
 			}
 			return 1 - WP_ControlParams.x * shadowDepth;
 		}

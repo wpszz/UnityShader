@@ -10,16 +10,29 @@ using UnityEditorInternal;
 [RequireComponent(typeof(Camera))]
 public class WPOutline : MonoBehaviour
 {
+    public enum AnitAliasing
+    {
+        None = 0,
+        X2 = 1,
+        X4 = 2,
+        X8 = 3,
+    }
+
     [Range(1, 3)]
     public int accuracy = 2;
 
     [Range(0f, 1f)]
     public float outlineIntensity = 0.5f;
 
-    [Range(0.1f, 10f)]
-    public float outlinePower = 3f;
+    [Range(0.1f, 5f)]
+    public float outlinePower = 0.5f;
 
     public Color outlineColor = Color.cyan;
+
+    public AnitAliasing antiAliasing;
+
+    [Range(0.5f, 10f)]
+    public float antiAliasingSize = 2f;
 
     public bool autoControl;
 
@@ -122,10 +135,12 @@ public class WPOutline : MonoBehaviour
             if (lv >= 3)
             {
                 accuracy = 3;
+                antiAliasing = AnitAliasing.X2;
             }
             else if (lv >= 2)
             {
                 accuracy = 2;
+                antiAliasing = AnitAliasing.X2;
             }
             else
             {
@@ -161,7 +176,7 @@ public class WPOutline : MonoBehaviour
         depthNormal.farClipPlane = m_mainCamera.farClipPlane;
         depthNormal.cullingMask = cullingMask & m_mainCamera.cullingMask;
 
-        Shader.SetGlobalVector(ID_WP_OutlineParams, new Vector4(outlineIntensity, outlinePower, 0, 1f));
+        Shader.SetGlobalVector(ID_WP_OutlineParams, new Vector4(outlineIntensity, (int)antiAliasing, outlinePower, antiAliasingSize));
         Shader.SetGlobalColor(ID_WP_OutlineColor, outlineColor);
 
         depthNormal.RenderWithShader(depthNormalMapShader, "RenderType");
@@ -209,6 +224,8 @@ public class WPOutlineInspector : Editor
     SerializedProperty outlineIntensity;
     SerializedProperty outlinePower;
     SerializedProperty outlineColor;
+    SerializedProperty antiAliasing;
+    SerializedProperty antiAliasingSize;
     SerializedProperty autoControl;
     SerializedProperty depthNormalMapShader;
 
@@ -221,6 +238,8 @@ public class WPOutlineInspector : Editor
         outlineIntensity = serializedObject.FindProperty("outlineIntensity");
         outlinePower = serializedObject.FindProperty("outlinePower");
         outlineColor = serializedObject.FindProperty("outlineColor");
+        antiAliasing = serializedObject.FindProperty("antiAliasing");
+        antiAliasingSize = serializedObject.FindProperty("antiAliasingSize");
         autoControl = serializedObject.FindProperty("autoControl");
         depthNormalMapShader = serializedObject.FindProperty("depthNormalMapShader");
     }
@@ -236,6 +255,9 @@ public class WPOutlineInspector : Editor
         EditorGUILayout.PropertyField(outlineColor);
         GUI.color = outline.autoControl ? Color.gray : Color.white;
         EditorGUILayout.PropertyField(accuracy);
+        GUI.color = outline.autoControl ? Color.gray : Color.white;
+        EditorGUILayout.PropertyField(antiAliasing);
+        EditorGUILayout.PropertyField(antiAliasingSize);
         GUI.color = Color.white;
         EditorGUILayout.PropertyField(autoControl);
         EditorGUILayout.PropertyField(depthNormalMapShader);

@@ -32,13 +32,14 @@ inline float ShadowAtten(float3 uvz) {
 	float shadowDepth = 0;
 	if (WP_ControlParams.y < 1)
 		shadowDepth = ClipShadowDepth(SampleDepth(uvz.xy), uvz);
-	else if (WP_ControlParams.y < 2)
+	else /*if (WP_ControlParams.y < 2)*/
 	{
 		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.3);
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.4);
 		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.3);
 	}
-	else /*if (WP_ControlParams.y < 3)*/
+	/*
+	else if (WP_ControlParams.y < 3)
 	{
 		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.15);
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.15);
@@ -46,18 +47,17 @@ inline float ShadowAtten(float3 uvz) {
 		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.15);
 		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.15);
 	}
-	/*
 	else
 	{
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.0585);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.0965);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, -1.0, 0.0585);
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.0965);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.1529);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.0965);
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 1.0, 0.0585);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.0965);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.0585);
+		shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.075);
+		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.1);
+		shadowDepth += GaussianShadowDepth(uvz, 1.0, -1.0, 0.075);
+		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.1);
+		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.3);
+		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.1);
+		shadowDepth += GaussianShadowDepth(uvz, -1.0, 1.0, 0.075);
+		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.1);
+		shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.075);
 	}
 	*/
 	return 1 - WP_ControlParams.x * shadowDepth;

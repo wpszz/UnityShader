@@ -38,7 +38,7 @@ Shader "WP/Outline/DepthNormal"
 				float3 worldViewDir = _WorldSpaceCameraPos.xyz - o.vertex;
 				float3 worldNormal = mul((float3x3)UNITY_MATRIX_M, v.normal);
 				o.depthNormal.y = saturate(dot(normalize(worldViewDir), normalize(worldNormal)));
-				o.depthNormal.y = pow(o.depthNormal.y, WP_OutlineParams.y);
+				o.depthNormal.y = pow(o.depthNormal.y, WP_OutlineParams.z);
 				return o;
 			}
 
