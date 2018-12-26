@@ -123,7 +123,7 @@ public class WPShadow : MonoBehaviour
         ClearShadow();
 
         if (m_shadowCamera)
-            GameObject.Destroy(m_shadowCamera);
+            GameObject.Destroy(m_shadowCamera.gameObject);
         m_shadowCamera = null;
     }
 

@@ -85,7 +85,7 @@ public class WPOutline : MonoBehaviour
         ClearOutline();
 
         if (m_depthNormalCamera)
-            GameObject.Destroy(m_depthNormalCamera);
+            GameObject.Destroy(m_depthNormalCamera.gameObject);
         m_depthNormalCamera = null;
     }
 
@@ -136,7 +136,7 @@ public class WPOutline : MonoBehaviour
 
     private void UpdateDepthNormalMap()
     {
-        int size = accuracy == 3 ? 2048 : (accuracy == 2 ? 1024 : 512);
+        int size = accuracy == 3 ? 1024 : (accuracy == 2 ? 512 : 256);
 
         if (size == m_depthNormalMapSize)
             return;
@@ -170,6 +170,29 @@ public class WPOutline : MonoBehaviour
     public void FixShadowMapShader()
     {
         depthNormalMapShader = Shader.Find("WP/Outline/DepthNormal");
+    }
+
+    public void FixObjectShaderByLayer(int layer)
+    {
+        foreach (var mr in UnityEngine.Object.FindObjectsOfType<MeshRenderer>())
+        {
+            if (mr.gameObject.layer == layer)
+            {
+                if (mr.sharedMaterial)
+                {
+                    Shader shader = mr.sharedMaterial.shader;
+                    if (shader)
+                    {
+                        switch (shader.name)
+                        {
+                            case "Mobile/Diffuse":
+                                mr.sharedMaterial.shader = Shader.Find("WP/Outline/Naive");
+                                break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -222,6 +245,13 @@ public class WPOutlineInspector : Editor
         if (!outline.depthNormalMapShader)
         {
             EditorGUILayout.HelpBox("No depth normal shader selected.", MessageType.Warning);
+        }
+
+        EditorGUILayout.Separator();
+        GUI.color = Color.yellow;
+        if (GUILayout.Button("EditorTest: Convert layer of default shaders"))
+        {
+            outline.FixObjectShaderByLayer(LayerMask.NameToLayer("Default"));
         }
     }
 }
