@@ -154,6 +154,7 @@ public class WPOutline : MonoBehaviour
     private void UpdateOutlineRender()
     {
         depthNormal.aspect = m_mainCamera.aspect;
+        depthNormal.fieldOfView = m_mainCamera.fieldOfView;
         depthNormal.orthographic = m_mainCamera.orthographic;
         depthNormal.orthographicSize = m_mainCamera.orthographicSize;
         depthNormal.nearClipPlane = m_mainCamera.nearClipPlane;
