@@ -20,7 +20,7 @@ public class WPOutlineSetting
 {
     public LayerMask cullingMask;
     [Range(1, 3)]
-    public int accuracy = 2;
+    public int resolution = 2;
     [Range(0f, 1f)]
     public float outlineIntensity = 0.5f;
     public OutlineAnitAliasing antiAliasing = OutlineAnitAliasing.None;
@@ -148,7 +148,7 @@ public class WPOutline : MonoBehaviour
 
     private void UpdateDepthNormalMap(WPOutlineSetting setting)
     {
-        int size = setting.accuracy == 3 ? 1024 : (setting.accuracy == 2 ? 512 : 256);
+        int size = setting.resolution == 3 ? 1024 : (setting.resolution == 2 ? 512 : 256);
 
         if (size == m_depthNormalMapSize)
             return;

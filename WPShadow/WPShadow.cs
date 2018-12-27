@@ -16,19 +16,118 @@ public enum ShadowAnitAliasing
 }
 
 [Serializable]
-public class WPShadowSetting
+public struct WPShadowSetting
 {
     public LayerMask cullingMask;
     [Range(1, 3)]
-    public int accuracy = 2;
+    public int resolution;
     [Range(1f, 20f)]
-    public float shadowDistance = 10f;
+    public float shadowDistance;
     [Range(0f, 1f)]
-    public float shadowIntensity = 0.5f;
-    public ShadowAnitAliasing antiAliasing = ShadowAnitAliasing.None;
+    public float shadowIntensity;
+    public ShadowAnitAliasing antiAliasing;
+
+    public static WPShadowSetting DefaultHighest
+    {
+        get
+        {
+            WPShadowSetting setting = new WPShadowSetting();
+            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 17);  // Unit&Player&CutScene
+            setting.resolution = 3;
+            setting.shadowDistance = 20;
+            setting.shadowIntensity = 0.5f;
+            setting.antiAliasing = ShadowAnitAliasing.X4;
+            return setting;
+        }
+    }
+
+    public static WPShadowSetting DefaultHigh
+    {
+        get
+        {
+            WPShadowSetting setting = new WPShadowSetting();
+            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 17);  // Unit&Player&CutScene
+            setting.resolution = 3;
+            setting.shadowDistance = 15;
+            setting.shadowIntensity = 0.5f;
+            setting.antiAliasing = ShadowAnitAliasing.X2;
+            return setting;
+        }
+    }
+
+    public static WPShadowSetting DefaultMid
+    {
+        get
+        {
+            WPShadowSetting setting = new WPShadowSetting();
+            setting.cullingMask = (1 << 9);  // Player
+            setting.resolution = 2;
+            setting.shadowDistance = 10;
+            setting.shadowIntensity = 0.5f;
+            setting.antiAliasing = ShadowAnitAliasing.None;
+            return setting;
+        }
+    }
+
+    public static WPShadowSetting DefaultLow
+    {
+        get
+        {
+            WPShadowSetting setting = new WPShadowSetting();
+            setting.cullingMask = 0;
+            setting.resolution = 1;
+            setting.shadowDistance = 10;
+            setting.shadowIntensity = 0.5f;
+            setting.antiAliasing = ShadowAnitAliasing.None;
+            return setting;
+        }
+    }
 }
 
-[RequireComponent(typeof(Light))]
+[Serializable]
+public struct WPShadowPlatform
+{
+    public WPShadowSetting highSetting;
+    public WPShadowSetting midSetting;
+    public WPShadowSetting lowSetting;
+
+    public static WPShadowPlatform DefaultPC
+    {
+        get
+        {
+            WPShadowPlatform platform = new WPShadowPlatform();
+            platform.highSetting = WPShadowSetting.DefaultHighest;
+            platform.midSetting = WPShadowSetting.DefaultHigh;
+            platform.lowSetting = WPShadowSetting.DefaultMid;
+            return platform;
+        }
+    }
+
+    public static WPShadowPlatform DefaultAndroid
+    {
+        get
+        {
+            WPShadowPlatform platform = new WPShadowPlatform();
+            platform.highSetting = WPShadowSetting.DefaultHigh;
+            platform.midSetting = WPShadowSetting.DefaultMid;
+            platform.lowSetting = WPShadowSetting.DefaultLow;
+            return platform;
+        }
+    }
+
+    public static WPShadowPlatform DefaultIOS
+    {
+        get
+        {
+            WPShadowPlatform platform = new WPShadowPlatform();
+            platform.highSetting = WPShadowSetting.DefaultHigh;
+            platform.midSetting = WPShadowSetting.DefaultMid;
+            platform.lowSetting = WPShadowSetting.DefaultLow;
+            return platform;
+        }
+    }
+}
+
 public class WPShadow : MonoBehaviour
 {
     public static int activeCullingMask
@@ -37,9 +136,9 @@ public class WPShadow : MonoBehaviour
         private set;
     }
 
-    public WPShadowSetting highSetting = new WPShadowSetting();
-    public WPShadowSetting midSetting = new WPShadowSetting();
-    public WPShadowSetting lowSetting = new WPShadowSetting();
+    public WPShadowPlatform pcSetting = WPShadowPlatform.DefaultPC;
+    public WPShadowPlatform androidSetting = WPShadowPlatform.DefaultAndroid;
+    public WPShadowPlatform iosSetting = WPShadowPlatform.DefaultIOS;
 
     public Shader shadowMapShader;
 
@@ -165,17 +264,24 @@ public class WPShadow : MonoBehaviour
 
     private WPShadowSetting GetCurrentSetting()
     {
-        int lv = QualitySettings.GetQualityLevel();
-        if (lv >= 3)
-            return highSetting;
-        if (lv >= 2)
-            return midSetting;
-        return lowSetting;
+        RuntimePlatform platform = Application.platform;
+        WPShadowPlatform platformSetting = pcSetting;
+        if (platform == RuntimePlatform.Android)
+            platformSetting = androidSetting;
+        else if (platform == RuntimePlatform.IPhonePlayer)
+            platformSetting = iosSetting;
+
+        int quality = QualitySettings.GetQualityLevel();
+        if (quality >= 3)
+            return platformSetting.highSetting;
+        if (quality >= 2)
+            return platformSetting.midSetting;
+        return platformSetting.lowSetting;
     }
 
     private void UpdateShadowDepthMap(WPShadowSetting setting)
     {
-        int size = setting.accuracy == 3 ? 2048 : (setting.accuracy == 2 ? 1024 : 512);
+        int size = setting.resolution == 3 ? 2048 : (setting.resolution == 2 ? 1024 : 512);
 
         if (size == m_shadowMapSize)
             return;
@@ -321,6 +427,21 @@ public class WPShadowInspector : Editor
         {
             shadow.FixObjectShaderByLayer(LayerMask.NameToLayer("Walkable"));
         }
+
+        GUI.color = Color.white;
+        RuntimePlatform platform = Application.platform;
+        string platformName = "PC";
+        if (platform == RuntimePlatform.Android)
+            platformName = "Android";
+        else if (platform == RuntimePlatform.IPhonePlayer)
+            platformName = "IOS";
+        int quality = QualitySettings.GetQualityLevel();
+        string qualityName = "Low";
+        if (quality >= 3)
+            qualityName = "High";
+        else if (quality >= 2)
+            qualityName = "Mid";
+        EditorGUILayout.HelpBox("Current setting: " + platformName + " " + qualityName, MessageType.Info);
     }
 }
 #endif
