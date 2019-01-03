@@ -7,7 +7,11 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 		_Control ("Control (RGBA)", 2D) = "white" {}
 		_MainTex ("Never Used", 2D) = "white" {}
 	}
-                
+
+	CGINCLUDE
+	#include "WPShadow.cginc"
+	ENDCG
+
 	SubShader {
 		Tags {
 			"SplatCount" = "4"
@@ -19,7 +23,7 @@ Shader "WP/Shadow/T4M 4 Textures for Mobile" {
 		#pragma exclude_renderers xbox360 ps3
 		//#pragma multi_compile __ WP_SHADOW_AA
 				
-		#include "WPShadow.cginc"
+		//#include "WPShadow.cginc"
 
 		struct Input {
 			float2 uv_Control : TEXCOORD0;

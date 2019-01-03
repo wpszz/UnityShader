@@ -3,6 +3,11 @@ Shader "WP/Shadow/Depth"
 	Properties
 	{
 	}
+
+	CGINCLUDE
+	#include "WPShadow.cginc"
+	ENDCG
+
 	SubShader
 	{
 		Tags { "RenderType"="Opaque" }
@@ -17,8 +22,7 @@ Shader "WP/Shadow/Depth"
 			#pragma vertex vert
 			#pragma fragment frag
 
-			#include "UnityCG.cginc"
-			#include "WPShadow.cginc"
+			//#include "WPShadow.cginc"
 
 			struct appdata_t {
 				float4 vertex : POSITION;
@@ -37,7 +41,7 @@ Shader "WP/Shadow/Depth"
 				return o;
 			}
 
-			float4 frag(v2f i) : COLOR
+			fixed4 frag(v2f i) : COLOR
 			{
 				return EncodeFloatRGBA(LightCameraDepth01(i.depth.x));
 			}

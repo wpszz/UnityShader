@@ -5,6 +5,10 @@ Shader "WP/Shadow/Diffuse"
 		_MainTex("Base (RGB)", 2D) = "white" {}
 	}
 
+	CGINCLUDE
+	#include "WPShadow.cginc"
+	ENDCG
+
 	SubShader
 	{
 		Tags { "RenderType" = "Opaque" }
@@ -17,7 +21,7 @@ Shader "WP/Shadow/Diffuse"
 		#pragma skip_variants UNITY_HDR_ON
 		//#pragma multi_compile __ WP_SHADOW_AA
 
-		#include "WPShadow.cginc"
+		//#include "WPShadow.cginc"
 
 		sampler2D _MainTex;
 

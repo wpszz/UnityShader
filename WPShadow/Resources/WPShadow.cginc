@@ -1,6 +1,8 @@
 #ifndef WP_SHADOW_INCLUDED
 #define WP_SHADOW_INCLUDED
 
+#include "UnityCG.cginc"
+
 uniform sampler2D WP_ShadowMap;
 uniform float4 WP_ShadowMap_TexelSize;
 uniform float4x4 WP_MatrixVPC;
@@ -8,7 +10,7 @@ uniform float4x4 WP_MatrixV;
 uniform float4 WP_ControlParams;
 
 inline float LightCameraDepth01(float z) {
-	return (z - WP_ControlParams.z) * WP_ControlParams.w;
+	return saturate((z - WP_ControlParams.z) * WP_ControlParams.w);
 }
 
 inline float SampleDepth(float2 uv)
@@ -18,9 +20,9 @@ inline float SampleDepth(float2 uv)
 
 inline float ClipShadowDepth(float shadowDepth, float3 uvz)
 {
-	float depth = LightCameraDepth01(uvz.z);
-	return step(shadowDepth, depth) * step(0.001, shadowDepth)
-		* step(0, uvz.x) * step(0, uvz.y) * step(uvz.x, 1) * step(uvz, 1);
+	float depth = LightCameraDepth01(uvz.z) - 0.0001;
+	float2 inside = step(0, uvz.xy) * step(uvz.xy, 1);
+	return step(shadowDepth, depth) * inside.x * inside.y;
 }
 
 inline float GaussianShadowDepth(float3 uvz, float kernelX, float kernelY, float kernelW) {

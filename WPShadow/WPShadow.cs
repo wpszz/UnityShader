@@ -32,7 +32,7 @@ public struct WPShadowSetting
         get
         {
             WPShadowSetting setting = new WPShadowSetting();
-            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 17);  // Unit&Player&CutScene
+            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 15) | (1 << 17);  // Unit&Player&FightUnit&CutScene
             setting.resolution = 3;
             setting.shadowDistance = 20;
             setting.shadowIntensity = 0.5f;
@@ -46,7 +46,7 @@ public struct WPShadowSetting
         get
         {
             WPShadowSetting setting = new WPShadowSetting();
-            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 17);  // Unit&Player&CutScene
+            setting.cullingMask = (1 << 8) | (1 << 9) | (1 << 15) | (1 << 17);  // Unit&Player&FightUnit&CutScene
             setting.resolution = 3;
             setting.shadowDistance = 15;
             setting.shadowIntensity = 0.5f;
@@ -157,7 +157,7 @@ public class WPShadow : MonoBehaviour
                 m_shadowCamera = node.gameObject.AddComponent<Camera>();
                 m_shadowCamera.enabled = false;
                 m_shadowCamera.clearFlags = CameraClearFlags.SolidColor;
-                m_shadowCamera.backgroundColor = Color.black;
+                m_shadowCamera.backgroundColor = Color.white;
                 m_shadowCamera.renderingPath = RenderingPath.VertexLit;
                 m_shadowCamera.hdr = false;
                 m_shadowCamera.useOcclusionCulling = false;
@@ -171,7 +171,6 @@ public class WPShadow : MonoBehaviour
     Camera m_mainCamera;
     RenderTexture m_shadowMap;
 
-    Transform m_transMainCamera;
     Transform m_transLight;
     Transform m_transShadowCamera;
 
@@ -186,10 +185,12 @@ public class WPShadow : MonoBehaviour
     private int ID_WP_MatrixVPC;
     private int ID_WP_ControlParams;
 
+    private RenderTextureFormat m_rtFormat = RenderTextureFormat.Default;
+
 #if UNITY_EDITOR
     private void Awake()
     {
-        if (!shadowMapShader)
+        if (!shadowMapShader || !shadowMapShader.isSupported)
             FixShadowMapShader();
     }
 #endif
@@ -201,9 +202,6 @@ public class WPShadow : MonoBehaviour
         ID_WP_MatrixVPC = Shader.PropertyToID("WP_MatrixVPC");
         ID_WP_ControlParams = Shader.PropertyToID("WP_ControlParams");
 
-        m_mainCamera = Camera.main;
-        m_transMainCamera = m_mainCamera.transform;
-
         m_transLight = this.transform;
         m_transShadowCamera = shadowCamera.transform;
 
@@ -213,11 +211,14 @@ public class WPShadow : MonoBehaviour
         m_correction4x4.SetRow(2, new Vector4(0, 0, 1, 0));
         m_correction4x4.SetRow(3, new Vector4(0, 0, 0, 1));
 
-        if (!m_mainCamera || !shadowMapShader)
+        if (!shadowMapShader)
         {
             this.enabled = false;
             return;
         }
+
+        if (SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGB565))
+            m_rtFormat = RenderTextureFormat.RGB565;
 
         activeCullingMask = GetCurrentSetting().cullingMask;
     }
@@ -251,7 +252,12 @@ public class WPShadow : MonoBehaviour
     {
         WPShadowSetting setting = GetCurrentSetting();
 
-        if (setting.cullingMask == 0 || setting.shadowIntensity <= 0.0001f)
+        // Main camera maybe changed
+        m_mainCamera = Camera.main;
+        // Culling intersection with main camera
+        activeCullingMask = setting.cullingMask & (m_mainCamera ? m_mainCamera.cullingMask : 0);
+
+        if (activeCullingMask == 0 || setting.shadowIntensity <= 0.001f)
         {
             ClearShadow();
             return;
@@ -290,7 +296,7 @@ public class WPShadow : MonoBehaviour
             RenderTexture.ReleaseTemporary(m_shadowMap);
 
         m_shadowMapSize = size;
-        m_shadowMap = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.Default);
+        m_shadowMap = RenderTexture.GetTemporary(size, size, 0, m_rtFormat);
         m_shadowMap.filterMode = FilterMode.Point;
         shadowCamera.targetTexture = m_shadowMap;
         Shader.SetGlobalTexture(ID_WP_ShadowMap, m_shadowMap);
@@ -320,7 +326,7 @@ public class WPShadow : MonoBehaviour
         m_frustumVertexs[6] = new Vector3(-farHalfWidth, -farHalfHeight, setting.shadowDistance);
         m_frustumVertexs[7] = new Vector3(farHalfWidth, -farHalfHeight, setting.shadowDistance);
 
-        Matrix4x4 viewToWorld = m_transMainCamera.localToWorldMatrix;
+        Matrix4x4 viewToWorld = m_mainCamera.transform.localToWorldMatrix;
         Matrix4x4 worldToLight = m_transLight.worldToLocalMatrix;
         Matrix4x4 VL = worldToLight * viewToWorld;
         for (int i = 0; i < 8; i++)
@@ -339,9 +345,6 @@ public class WPShadow : MonoBehaviour
             zMin = Mathf.Min(zMin, v.z);
             zMax = Mathf.Max(zMax, v.z);
         }
-
-        // sync with main camera
-        activeCullingMask = setting.cullingMask & m_mainCamera.cullingMask;
 
         m_transShadowCamera.localPosition = new Vector3((xMin + xMax) * 0.5f, (yMin + yMax) * 0.5f, 0);
         shadowCamera.orthographicSize = Mathf.Max((xMax - xMin) * 0.5f, (yMax - yMin) * 0.5f);
