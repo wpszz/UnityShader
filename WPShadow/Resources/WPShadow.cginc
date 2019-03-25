@@ -25,44 +25,35 @@ inline float ClipShadowDepth(float shadowDepth, float3 uvz)
 	return step(shadowDepth, depth) * inside.x * inside.y;
 }
 
-inline float GaussianShadowDepth(float3 uvz, float kernelX, float kernelY, float kernelW) {
-	float shadowDepth = SampleDepth(float2(uvz.x + WP_ShadowMap_TexelSize.x * kernelX, uvz.y + WP_ShadowMap_TexelSize.y * kernelY));
-	return ClipShadowDepth(shadowDepth, uvz) * kernelW;
-}
-
 inline float ShadowAtten(float3 uvz) {
-	float shadowDepth = 0;
+	float shadow = 0;
 	if (WP_ControlParams.y < 1)
-		shadowDepth = ClipShadowDepth(SampleDepth(uvz.xy), uvz);
-	else /*if (WP_ControlParams.y < 2)*/
-	{
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.3);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.4);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.3);
-	}
-	/*
-	else if (WP_ControlParams.y < 3)
-	{
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.15);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.15);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.4);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.15);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.15);
-	}
+		shadow = ClipShadowDepth(SampleDepth(uvz.xy), uvz);
 	else
 	{
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, -1.0, 0.075);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, -1.0, 0.1);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, -1.0, 0.075);
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 0.0, 0.1);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 0.0, 0.3);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 0.0, 0.1);
-		shadowDepth += GaussianShadowDepth(uvz, -1.0, 1.0, 0.075);
-		shadowDepth += GaussianShadowDepth(uvz, 0.0, 1.0, 0.1);
-		shadowDepth += GaussianShadowDepth(uvz, 1.0, 1.0, 0.075);
+		// PCF shadowmap filtering based on a 3x3 kernel (optimized with 4 taps)
+		const float2 offset = float2(0.5, 0.5);
+		float2 uv = (uvz.xy * WP_ShadowMap_TexelSize.zw) + offset;
+		float2 base_uv = (floor(uv) - offset) * WP_ShadowMap_TexelSize.xy;
+		float2 st = frac(uv);
+
+		float2 uw = float2(3 - 2 * st.x, 1 + 2 * st.x);
+		float2 u = float2((2 - st.x) / uw.x - 1, (st.x) / uw.y + 1);
+		u *= WP_ShadowMap_TexelSize.x;
+
+		float2 vw = float2(3 - 2 * st.y, 1 + 2 * st.y);
+		float2 v = float2((2 - st.y) / vw.x - 1, (st.y) / vw.y + 1);
+		v *= WP_ShadowMap_TexelSize.y;
+
+		half sum = 0;
+		sum += uw[0] * vw[0] * ClipShadowDepth(SampleDepth(base_uv + float2(u[0], v[0])), uvz);
+		sum += uw[1] * vw[0] * ClipShadowDepth(SampleDepth(base_uv + float2(u[1], v[0])), uvz);
+		sum += uw[0] * vw[1] * ClipShadowDepth(SampleDepth(base_uv + float2(u[0], v[1])), uvz);
+		sum += uw[1] * vw[1] * ClipShadowDepth(SampleDepth(base_uv + float2(u[1], v[1])), uvz);
+
+		shadow = sum / 16.0f;
 	}
-	*/
-	return 1 - WP_ControlParams.x * shadowDepth;
+	return 1 - WP_ControlParams.x * shadow;
 }
 
 #define WP_SHADOW_INPUT float3 wp_uvz;
